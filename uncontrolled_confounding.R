@@ -56,13 +56,19 @@
     ####################################
     set.seed(123)    
     N <- 1000
-    Z <- rnorm(n=N,mean=5,sd=1)
-    X <- rnorm(n=N,mean=(1+2*Z),sd=0.001)
+    Z <- rnorm(n=N,mean=5,sd=.1)
+    X <- rnorm(n=N,mean=(1+2*Z),sd=0.1)
     Y <- rnorm(n=N,mean=(2+3*X+4*Z),sd=0.001)
         
+    sd(Z)^2
+
     lm(Y~X+Z)
     lm(X~Z)
     lm(Z~X)
+    
+    (sd(X)^2/sd(Z)^2)
+    
+    
     ## coefficients are inverse
     
         # X = 1 + 2Z
