@@ -9,7 +9,7 @@ expit <- function(x) {exp(x)/(1+exp(x))}
 
 ## small number to have more likelihood for imbalance
 N <- 20
-niter <- 1:1000
+niter <- 1:10000
 
 
 ############################
@@ -72,17 +72,17 @@ mean(bd)
 ############################
 
 ## DAG structure
-# dag {
-#   "E*Y0" [pos="0.206,0.357"]
-#   E [exposure,pos="-0.239,-0.459"]
-#   Y0 [pos="-0.129,1.076"]
-#   Y1 [outcome,pos="0.752,0.464"]
-#   "E*Y0" -> Y1
-#   E -> "E*Y0"
-#   E -> Y1
-#   Y0 -> "E*Y0"
-#   Y0 -> Y1
-# }
+dag {
+  "E*Y0" [pos="0.206,0.357"]
+  E [exposure,pos="-0.239,-0.459"]
+  Y0 [pos="-0.129,1.076"]
+  Y1 [outcome,pos="0.752,0.464"]
+  "E*Y0" -> Y1
+  E -> "E*Y0"
+  E -> Y1
+  Y0 -> "E*Y0"
+  Y0 -> Y1
+}
 
 
 bd <- c()
@@ -120,21 +120,23 @@ for (i in niter) {
   
 }
 
-m1absdiff <- abs(m1+marg)
-m2absdiff <- abs(m2+marg)
+m1absdiff <- abs(m1-marg)
+m2absdiff <- abs(m2-marg)
 m1m2absdiff <- abs(m1-m2)
 
-m1diff <- m1+marg
-m2diff <- m2+marg
+m1diff <- m1-marg
+m2diff <- m2-marg
 m1m2diff <- m1-m2
 
 mean(m1)
 mean(m2)
+mean(m1absdiff)
+mean(m2absdiff)
 ## both have similar error though?
 summary(lm(m1diff ~ bd)) ## the amount off does appear to be related to the baseline difference
 summary(lm(m2diff ~ bd)) ## the amount off doesn't appear to be related to the baseline difference
 
-summary(lm(m1absdiff ~ bd)) ## the amount off does appear to be related to the baseline difference
+summary(lm(m1absdiff ~ bd)) ## is amount off related to the baseline difference?
 summary(lm(m2absdiff ~ bd)) ## the amount off doesn't appear to be related to the baseline difference
 
 ## the difference between the two models depends on the baseline difference
@@ -149,6 +151,24 @@ mean(bd)
 ## Question: in cases where you have large baseline differences, are you actually better off with ANCOVA?
 ## identify cases with large baseline differences and see which method results in smaller error
 
+##AUGMENT THE DAG TO SEE DiD???
+## VERSUS OTHER APPROACH? CAN WE SEE BOTH ON THE SAME DAG?
+## Equations with edges labeled
+
+
+## visual of DiD?
+dag {
+  "E*Time" [pos="0.264,0.394"]
+  E [exposure,pos="0.203,0.163"]
+  Time [pos="0.127,0.620"]
+  Y [outcome,pos="0.430,0.412"]
+  "E*Time" -> Y
+  E -> "E*Time"
+  E -> Y
+  Time -> "E*Time"
+  Time -> E
+  Time -> Y
+}
 
 
 
