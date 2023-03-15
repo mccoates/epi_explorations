@@ -1,0 +1,33 @@
+---
+title: "RCT_comparison"
+format: html
+editor: visual
+---
+
+# Comparison of Methods for Analyzing RCT Data Regarding Baseline Treatment Group Differences
+
+Motivation: Reading Twisk (2018) and:
+
+-   Seeing multiple approaches for analyzing fairly basic structures of RCT data
+-   Reading about regression to the mean and Wanting to understand how different methods for analyzing RCT data do or do not handle this well
+-   Wanting to grapple with augmented DAG structures that illustrate the "difference in differences" and "longitudinal analysis of covariance" approaches
+
+## Models Examined
+
+
+
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).

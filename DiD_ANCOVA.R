@@ -3,13 +3,14 @@
 
 rm(list=ls())
 library(data.table)
+library(ggplot2)
 
 ## define useful functions
 expit <- function(x) {exp(x)/(1+exp(x))}
 
 ## small number to have more likelihood for imbalance
 N <- 20
-niter <- 1:10000
+niter <- 1:1000
 
 
 ############################
@@ -66,23 +67,22 @@ mean(bd)
 
 
 
-
 ############################
 ## Y0 interacts with E
 ############################
 
 ## DAG structure
-dag {
-  "E*Y0" [pos="0.206,0.357"]
-  E [exposure,pos="-0.239,-0.459"]
-  Y0 [pos="-0.129,1.076"]
-  Y1 [outcome,pos="0.752,0.464"]
-  "E*Y0" -> Y1
-  E -> "E*Y0"
-  E -> Y1
-  Y0 -> "E*Y0"
-  Y0 -> Y1
-}
+# dag {
+#   "E*Y0" [pos="0.206,0.357"]
+#   E [exposure,pos="-0.239,-0.459"]
+#   Y0 [pos="-0.129,1.076"]
+#   Y1 [outcome,pos="0.752,0.464"]
+#   "E*Y0" -> Y1
+#   E -> "E*Y0"
+#   E -> Y1
+#   Y0 -> "E*Y0"
+#   Y0 -> Y1
+# }
 
 
 bd <- c()
@@ -145,6 +145,36 @@ summary(lm(m1m2diff ~ bd))
 
 mean(bd)
 
+res <- data.table(data.frame(baseline_difference=bd,DiD_error_abs=m1absdiff,ANCOVA_error_abs=m2absdiff,
+                             DiD_ANCOVA_diff=m1m2diff,abs_DiD_ANCOVA_diff=abs(m1m2absdiff),
+                             DiD_error=m1diff,ANCOVA_error=m2diff),
+                             diff_errors=m1diff-m2diff, diff_abs_errors=m1absdiff-m2absdiff)
+res <- melt(res,id.vars="baseline_difference")
+res[variable=="DiD_error_abs",variable:="DiD Absolute Error"]
+res[variable=="ANCOVA_error_abs",variable:="ANCOVA Absolute Error"]
+res[variable=="DiD_ANCOVA_diff",variable:="DiD minus ANCOVA Estimate"]
+res[variable=="abs_DiD_ANCOVA_diff",variable:="Absolute value of DiD Minus ANCOVA Estimate"]
+res[variable=="DiD_error",variable:="DiD Error"]
+res[variable=="ANCOVA_error",variable:="ANCOVA Error"]
+res[variable=="diff_errors",variable:="DiD Error minus ANCOVA Error"]
+res[variable=="diff_abs_errors",variable:="Difference in Absolute Values of Errors"]
+
+
+gg <- ggplot(data=res[variable %in% c("DiD Error","ANCOVA Error")],aes(x=baseline_difference,y=value)) + geom_point() + theme_bw() +
+  facet_wrap(~variable) + geom_smooth(method='lm',se = FALSE) + ylab("Error from True Marginal Effect in Sample") + 
+  xlab("Difference in Mean Exposure at Baseline")
+print(gg)
+
+
+
+gg <- ggplot(data=res,aes(x=bd,y=errordiff)) + geom_point()
+print(gg)
+gg <- ggplot(data=res,aes(x=bd,y=abserrordiff)) + geom_point()
+print(gg)
+
+## does data generating process matter?? which is "correct" data generating process for whether
+## DiD or ancova better?
+
 ## so they have basically same mean error, but one seems to have error more correlated with baseline difference (DiD)
 ## when does the other have more error to balance it out?
 ## how much error can this lead to--does it make a real difference?
@@ -157,18 +187,18 @@ mean(bd)
 
 
 ## visual of DiD?
-dag {
-  "E*Time" [pos="0.264,0.394"]
-  E [exposure,pos="0.203,0.163"]
-  Time [pos="0.127,0.620"]
-  Y [outcome,pos="0.430,0.412"]
-  "E*Time" -> Y
-  E -> "E*Time"
-  E -> Y
-  Time -> "E*Time"
-  Time -> E
-  Time -> Y
-}
+# dag {
+#   "E*Time" [pos="0.264,0.394"]
+#   E [exposure,pos="0.203,0.163"]
+#   Time [pos="0.127,0.620"]
+#   Y [outcome,pos="0.430,0.412"]
+#   "E*Time" -> Y
+#   E -> "E*Time"
+#   E -> Y
+#   Time -> "E*Time"
+#   Time -> E
+#   Time -> Y
+# }
 
 
 
