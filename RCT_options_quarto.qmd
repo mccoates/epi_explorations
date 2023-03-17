@@ -9,25 +9,124 @@ editor: visual
 Motivation: Reading Twisk (2018) and:
 
 -   Seeing multiple approaches for analyzing fairly basic structures of RCT data
--   Reading about regression to the mean and Wanting to understand how different methods for analyzing RCT data do or do not handle this well
+-   Reading about regression to the mean and wanting to understand how different methods for analyzing RCT data do or do not handle this well
 -   Wanting to grapple with augmented DAG structures that illustrate the "difference in differences" and "longitudinal analysis of covariance" approaches
 
-## Models Examined
-
-
-
-
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
-
-```{r}
-1 + 1
-```
-
-You can add options to executable code like this
+Note: ATT/ATE?
 
 ```{r}
 #| echo: false
-2 * 2
+#| output: false
+# setup
+rm(list=ls())
+library(data.table)
+library(ggplot2)
+library(ggdag)
+library(dagitty)
+library(gridExtra)
+
+## define useful functions
+expit <- function(x) {exp(x)/(1+exp(x))}
+
+## small number to have more likelihood for imbalance
+N <- 20
+niter <- 1:1000
 ```
+
+## Analytical Strategies
+
+I
+
+## Data Generating Processes
+
+I tested multiple data generating processes to understand whether differences in the estimated effects using different methods
+
+```{r}
+#| echo: false
+
+dag1 <- dagitty::dagitty(
+'dag {
+  "E*Y0" [pos="0.1,0.357"]
+  E [exposure,pos="-0.239,-0.459"]
+  Y0 [pos="-0.129,1.076"]
+  Y1 [outcome,pos="0.752,0.464"]
+  E -> "E*Y0"
+  E -> Y1
+  Y0 -> "E*Y0"
+  Y0 -> Y1
+}'
+)
+
+dag2 <- dagitty::dagitty(
+'dag {
+  "E*Y0" [pos="0.1,0.357"]
+  E [exposure,pos="-0.239,-0.459"]
+  Y0 [pos="-0.129,1.076"]
+  Y1 [outcome,pos="0.752,0.464"]
+  "E*Y0" -> Y1
+  E -> "E*Y0"
+  E -> Y1
+  Y0 -> "E*Y0"
+  Y0 -> Y1
+}'
+)
+
+gg1 <- ggdag(dag1, layout = "circle") + theme_dag_blank() + annotate("text",x=.45,y=.48,label="Effect = 0") + ggtitle("DGP 1: No Interaction\n(on Additive Scale)")
+
+gg2 <- ggdag(dag2, layout = "circle") + theme_dag_blank() + 
+  annotate("text",x=.45,y=.48,label="Effect =/= 0") + ggtitle("DGP 2: Interaction\n(on Additive Scale)")
+
+grid.arrange(gg1, gg2, nrow = 1)
+
+#ggplot(dag)
+
+
+```
+
+```{r}
+#| echo: false
+
+bd <- c()
+m1 <- c()
+m2 <- c()
+for (i in niter) {
+  cat(paste0(i)); flush.console()
+  ## generate data
+  tx <- sample(x=1:N,size=.5*N) ## make treatment randomization exactly 50%
+  ## continuous first because it seems easier
+  Y0 <- rnorm(n=N,mean=10,sd=1.5)
+  E <- as.numeric(c(1:N) %in% tx)
+  Y1 <- (1*Y0 + E*(-2) + rnorm(n=N,mean=0,sd=.2))
+  id=1:N
+  d <- data.table(as.data.frame(cbind(Y0,E,Y1,id)))
+  
+  ## data formatted for DiD
+  d2 <- melt(copy(d),id.vars=c("id","E"),variable.name="time",value.name="Y")
+  d2[,time:=as.numeric(substr(time,2,3))]
+  d2[,id:=factor(id)]
+  
+  ## find imbalance in baseline values
+  bd[i] <- mean(d[E==1]$Y0)-mean(d[E==0]$Y0)
+  
+  ## regression models
+  mod1 <- lm(data=d2,formula="Y ~ E + time + E*time")
+  # did2 <- lmer(data=d2,formula="Y ~ E + time + E*time + (1 | id)") in this case exactly the same
+  mod2 <- lm(data=d,formula="Y1 ~ Y0 + E")
+  m1[i] <- summary(mod1)$coefficients["E:time","Estimate"]
+  m2[i] <- summary(mod2)$coefficients["E","Estimate"]
+    
+}
+
+m1diff <- abs(m1+2)
+m2diff <- abs(m2+2)
+mean(m1)
+mean(m2)
+summary(lm(m1diff ~ bd))
+summary(lm(m2diff ~ bd))
+mean(bd)
+
+```
+
+You can add options to executable code like this
 
 The `echo: false` option disables the printing of code (only output is displayed).
