@@ -12,6 +12,9 @@ Motivation: Reading Twisk (2018) and:
 -   Reading about regression to the mean and wanting to understand how different methods for analyzing RCT data do or do not handle this well
 -   Wanting to grapple with augmented DAG structures that illustrate the "difference in differences" and "longitudinal analysis of covariance" approaches
 
+
+Note to look back: https://diff.healthpolicydatascience.org/#regression
+
 Note: ATT/ATE?
 
 ```{r}
