@@ -6,16 +6,11 @@ editor: visual
 
 # Comparison of Methods for Analyzing RCT Data Regarding Baseline Treatment Group Differences
 
-Motivation: Reading Twisk (2018) and:
+Motivation:
 
 -   Seeing multiple approaches for analyzing fairly basic structures of RCT data
--   Reading about regression to the mean and wanting to understand how different methods for analyzing RCT data do or do not handle this well
--   Wanting to grapple with augmented DAG structures that illustrate the "difference in differences" and "longitudinal analysis of covariance" approaches
-
-
-Note to look back: https://diff.healthpolicydatascience.org/#regression
-
-Note: ATT/ATE?
+-   Reading that some strategies better adjust for **regression to the mean** because of baseline differences in treatment and control group (Twisk, 2018)
+-   Wanting to understand the DAG structures that illustrate the "difference in differences" and "longitudinal analysis of covariance" approaches/implied data generating processes
 
 ```{r}
 #| echo: false
@@ -32,17 +27,24 @@ library(gridExtra)
 expit <- function(x) {exp(x)/(1+exp(x))}
 
 ## small number to have more likelihood for imbalance
-N <- 20
+N <- 30
 niter <- 1:1000
 ```
 
-## Analytical Strategies
+## Analysis
 
-I
+### Overview
+(1) Simulated RCT data. The treatment, $X$, was binary, and the outcome, $Y$, was simulated at baseline and after treatment. RCT data were simulated using multiple data generating processes.
 
-## Data Generating Processes
+(2) Ran models to estimate the effect of treatment on the outcome of interest, comparing error over many simulations, as well as examining relationship between error and the baseline imbalance in the outcome.
 
-I tested multiple data generating processes to understand whether differences in the estimated effects using different methods
+### Data Generating Processes
+
+I tested multiple data generating processes to understand whether differences in the estimated effects using different methods:
+
+(1) $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \epsilon$
+
+(2) $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \beta_{X*Y_0} X*Y_0 + \epsilon$
 
 ```{r}
 #| echo: false
@@ -85,6 +87,23 @@ grid.arrange(gg1, gg2, nrow = 1)
 
 
 ```
+
+### Models Fit
+
+I compared the following analytic approaches defined in Twisk et al.:
+
+(1) "Longitudinal Analysis of Covariance"
+(a) Unsaturated
+$Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \epsilon$
+(b) Saturated
+$Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \beta_{X*Y_0} X*Y_0 + \epsilon$
+
+(2) "Repeated Measures Analysis" (Difference in Differences)
+$Y_t=\beta_0 + \beta_X X + \beta_{time} time + \beta_{time*X} time*X + \epsilon$
+
+
+
+
 
 ```{r}
 #| echo: false
@@ -130,6 +149,12 @@ mean(bd)
 
 ```
 
-You can add options to executable code like this
+Notes:
 
-The `echo: false` option disables the printing of code (only output is displayed).
+Note to look back: https://diff.healthpolicydatascience.org/#regression
+
+not the same but maybe related https://www.sciencedirect.com/science/article/abs/pii/S0304407614002437?via%3Dihub https://onlinelibrary.wiley.com/doi/10.1111/1475-6773.13017 https://onlinelibrary.wiley.com/doi/full/10.1111/1475-6773.13015 https://pubmed.ncbi.nlm.nih.gov/33978956/
+
+Note: ATT/ATE?
+
+Note: Do with continuous X too?
