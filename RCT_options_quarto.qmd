@@ -1,12 +1,10 @@
 ---
-title: "RCT_comparison"
+title: "Comparison of Methods for Analyzing RCT Data Regarding Baseline Treatment Group Differences"
 format: html
 editor: visual
 ---
 
-# Comparison of Methods for Analyzing RCT Data Regarding Baseline Treatment Group Differences
-
-Motivation:
+### Motivation:
 
 -   Seeing multiple approaches for analyzing fairly basic structures of RCT data
 -   Reading that some strategies better adjust for **regression to the mean** because of baseline differences in treatment and control group (Twisk, 2018)
@@ -34,44 +32,46 @@ niter <- 1:1000
 ## Analysis
 
 ### Overview
-(1) Simulated RCT data. The treatment, $X$, was binary, and the outcome, $Y$, was simulated at baseline and after treatment. RCT data were simulated using multiple data generating processes.
+(1) Simulated RCT data using multiple data generating processes for comparison.
 
-(2) Ran models to estimate the effect of treatment on the outcome of interest, comparing error over many simulations, as well as examining relationship between error and the baseline imbalance in the outcome.
+(2) Fit generalized linear models with varied specifications to estimate the effect of treatment on the outcome of interest, comparing error over many simulations, as well as examining relationship between error and the baseline imbalance in the outcome.
 
 ### Data Generating Processes
 
-I tested multiple data generating processes to understand whether differences in the estimated effects using different methods:
+I tested multiple data generating processes to understand in which contexts different modeling strategies led to different results:
 
-(1) $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \epsilon$
+(1) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \epsilon$
 
-(2) $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \beta_{X*Y_0} X*Y_0 + \epsilon$
+(2) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \beta_{X*Y_0} X*Y_{0} + \epsilon$
+
+where $X$ is treatment, $Y_{0}$ is the baseline measure of the outcome before treatment, and $Y_{1}$ is the post-treatment outcome.
 
 ```{r}
 #| echo: false
 
 dag1 <- dagitty::dagitty(
 'dag {
-  "E*Y0" [pos="0.1,0.357"]
-  E [exposure,pos="-0.239,-0.459"]
+  "X*Y0" [pos="0.1,0.357"]
+  X [exposure,pos="-0.239,-0.459"]
   Y0 [pos="-0.129,1.076"]
   Y1 [outcome,pos="0.752,0.464"]
-  E -> "E*Y0"
-  E -> Y1
-  Y0 -> "E*Y0"
+  X -> "X*Y0"
+  X -> Y1
+  Y0 -> "X*Y0"
   Y0 -> Y1
 }'
 )
 
 dag2 <- dagitty::dagitty(
 'dag {
-  "E*Y0" [pos="0.1,0.357"]
-  E [exposure,pos="-0.239,-0.459"]
+  "X*Y0" [pos="0.1,0.357"]
+  X [exposure,pos="-0.239,-0.459"]
   Y0 [pos="-0.129,1.076"]
   Y1 [outcome,pos="0.752,0.464"]
-  "E*Y0" -> Y1
-  E -> "E*Y0"
-  E -> Y1
-  Y0 -> "E*Y0"
+  "X*Y0" -> Y1
+  X -> "X*Y0"
+  X -> Y1
+  Y0 -> "X*Y0"
   Y0 -> Y1
 }'
 )
@@ -90,7 +90,7 @@ grid.arrange(gg1, gg2, nrow = 1)
 
 ### Models Fit
 
-I compared the following analytic approaches defined in Twisk et al.:
+I compared the following analytic approaches (names from Twisk et al., 2018):
 
 (1) "Longitudinal Analysis of Covariance"
 (a) Unsaturated
@@ -103,10 +103,13 @@ $Y_t=\beta_0 + \beta_X X + \beta_{time} time + \beta_{time*X} time*X + \epsilon$
 
 
 
+### Results
 
 
 ```{r}
 #| echo: false
+
+## DATA GENERATING PROCESS 1
 
 bd <- c()
 m1 <- c()
