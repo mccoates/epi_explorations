@@ -158,6 +158,6 @@ Note to look back: https://diff.healthpolicydatascience.org/#regression
 
 not the same but maybe related https://www.sciencedirect.com/science/article/abs/pii/S0304407614002437?via%3Dihub https://onlinelibrary.wiley.com/doi/10.1111/1475-6773.13017 https://onlinelibrary.wiley.com/doi/full/10.1111/1475-6773.13015 https://pubmed.ncbi.nlm.nih.gov/33978956/
 
-Note: ATT/ATE?
+Note: ATT/ATE? IS THE FACT THAT IT IS ATT SOMEHOW ENCODED IN GRAPH? HOW CAN WE EXPLAIN THE TRANSFORMATION OF THE GRAPH?
 
 Note: Do with continuous X too?
