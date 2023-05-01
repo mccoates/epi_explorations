@@ -9,6 +9,7 @@ editor: visual
 -   Seeing multiple approaches for analyzing fairly basic structures of RCT data
 -   Reading that some strategies better adjust for **regression to the mean** because of baseline differences in treatment and control group (Twisk, 2018)
 -   Wanting to understand the DAG structures that illustrate the "difference in differences" and "longitudinal analysis of covariance" approaches/implied data generating processes
+-   Talking to professor in Bayesian analysis class who strongly preferred a difference in differences approach with an individual-level random effect
 
 ```{r}
 #| echo: false
@@ -32,6 +33,7 @@ niter <- 1:1000
 ## Analysis
 
 ### Overview
+
 (1) Simulated RCT data using multiple data generating processes for comparison.
 
 (2) Fit generalized linear models with varied specifications to estimate the effect of treatment on the outcome of interest, comparing error over many simulations, as well as examining relationship between error and the baseline imbalance in the outcome.
@@ -45,6 +47,15 @@ I tested multiple data generating processes to understand in which contexts diff
 (2) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \beta_{X*Y_0} X*Y_{0} + \epsilon$
 
 where $X$ is treatment, $Y_{0}$ is the baseline measure of the outcome before treatment, and $Y_{1}$ is the post-treatment outcome.
+
+(3) $Y = \alpha_0 + \alpha_{Arm} Arm + \alpha_{Post} Post + \alpha_{Arm*Post} Arm*Post + \epsilon$
+
+(4) $Y = \alpha_0 + \alpha_{Arm} Arm + \alpha_{Post} Post + \alpha_{Arm*Post} Arm*Post + \gamma + \epsilon$
+
+where $Arm$ is treatment an indicator of the study arm, $Post$ is an indicator of time (pre/post intervention), and $\gamma$ is an individual-specific random effect.
+
+
+**NOTE TO RENAME PARAMETERS ABOVE TO DIFFER**
 
 ```{r}
 #| echo: false
@@ -93,18 +104,24 @@ grid.arrange(gg1, gg2, nrow = 1)
 I compared the following analytic approaches (names from Twisk et al., 2018):
 
 (1) "Longitudinal Analysis of Covariance"
-(a) Unsaturated
-$Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \epsilon$
-(b) Saturated
-$Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \beta_{X*Y_0} X*Y_0 + \epsilon$
 
-(2) "Repeated Measures Analysis" (Difference in Differences)
-$Y_t=\beta_0 + \beta_X X + \beta_{time} time + \beta_{time*X} time*X + \epsilon$
+```{=html}
+<!-- -->
+```
+(a) Unsaturated $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \epsilon$
+(b) Saturated $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \beta_{X*Y_0} X*Y_0 + \epsilon$
 
+```{=html}
+<!-- -->
+```
+(2) "Repeated Measures Analysis" (Difference in Differences) 
 
+(a) No Individual Random Effect $Y_t=\beta_0 + \beta_X X + \beta_{time} time + \beta_{time*X} time*X + \epsilon$
+(b) Individual Random Effect $Y_t=\beta_0 + \beta_X X + \beta_{time} time + \beta_{time*X} time*X + \gamma + \epsilon$
+
+**NOTE TO REWRITE THESE USING SAME NOTATION AS FOR DATA GENERATION ABOVE**
 
 ### Results
-
 
 ```{r}
 #| echo: false
