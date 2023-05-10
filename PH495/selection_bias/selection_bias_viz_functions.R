@@ -21,6 +21,84 @@ cor2cov_1 <- function(R,S){
   diag(S) %*% R %*% diag(S)
 }
 
+# dag {
+#   "In the NBA" [adjusted,pos="-0.155,0.863"]
+#   "Love Basketball" [outcome,pos="-1.413,0.807"]
+#   "Super Talented" [exposure,pos="-0.697,-0.681"]
+#   "Love Basketball" -> "In the NBA"
+#   "Super Talented" -> "In the NBA"
+#   "Super Talented" -> "Love Basketball"
+# }
+
+
+sim_data <- function(N=100000,eff_skilled_love=0.6){
+  
+  ## simulate talent
+  skilled <- rbinom(n=N,size=1,prob=0.05)
+  
+  ## simulate love of basketball
+  # love <- rbinom(n=N,size=1,prob=invlogit(-2+log(2)*skilled))
+  love <- rbinom(n=N,size=1,prob=.04+eff_skilled_love*skilled)
+  
+  ## simulate being in the NBA
+  # nba <- rbinom(n=N,size=1,prob=invlogit(-7+log(5)*love+log(3)*skilled))
+  nba <- rbinom(n=N,size=1,prob=0.001+0.01*love+0.05*skilled)
+  
+  # summary(skilled)
+  # summary(love)
+  # summary(nba)
+  # summary(nba[skilled==1])
+  # summary(nba[skilled==0])
+  # sum(nba)
+  
+  ## conditioning on collider
+  # mod <- glm(love ~ skilled + nba,family=binomial(link="logit"))
+  mod <- glm(love ~ skilled + nba,family=binomial(link="identity"))
+  # summary(mod)
+  
+  ## not conditioning on collider
+  # mod2 <- glm(love ~ skilled,family=binomial(link="logit"))
+  mod2 <- glm(love ~ skilled,family=binomial(link="identity"))
+  # summary(mod2)
+  
+  ## stratifying on NBA
+  # mod3 <- glm(love[nba==1] ~ skilled[nba==1],family=binomial(link="logit"))
+  mod3 <- glm(love[nba==1] ~ skilled[nba==1],family=binomial(link="identity"))
+  # summary(mod3)
+  
+  ## stratifying on not NBA
+  # mod4 <- glm(love[nba==0] ~ skilled[nba==0],family=binomial(link="logit"))
+  mod4 <- glm(love[nba==0] ~ skilled[nba==0],family=binomial(link="identity"))
+  # summary(mod4)
+  
+  # out <- data.table(data.frame(true=2,
+  #                              conditioned=exp(coefficients(mod)["skilled"]),
+  #                              unconditioned=exp(coefficients(mod2)["skilled"]),
+  #                              strat1=exp(coefficients(mod3)["skilled[nba == 1]"]),
+  #                              strat0=exp(coefficients(mod4)["skilled[nba == 0]"])))
+  
+  out <- data.table(data.frame(true=eff_skilled_love,
+                               conditioned=coefficients(mod)["skilled"],
+                               unconditioned=coefficients(mod2)["skilled"],
+                               strat1=coefficients(mod3)["skilled[nba == 1]"],
+                               strat0=coefficients(mod4)["skilled[nba == 0]"]))
+  
+  return(out)
+  
+}
+
+res <- list()
+for (i in 1:10) {
+  cat(paste0(i,"\n")); flush.console()
+  res[[i]] <- sim_data(eff_skilled_love=0)
+}
+res <- rbindlist(res)
+resmean <- copy(res[,lapply(.SD,mean),.SDcols=c(names(res))])
+
+
+
+
+
 
 ## start with: 
 ## (1) Correlation between A and B
