@@ -24,10 +24,11 @@ library(gridExtra)
 
 ## define useful functions
 expit <- function(x) {exp(x)/(1+exp(x))}
+source("C:/Users/MattC/Documents/repos/epi_explorations/RCT_options_functions.R")
 
 ## small number to have more likelihood for imbalance
 N <- 30
-niter <- 1:1000
+niter <- 1000
 ```
 
 ## Analysis
@@ -40,22 +41,49 @@ niter <- 1:1000
 
 ### Data Generating Processes
 
-I tested multiple data generating processes to understand in which contexts different modeling strategies led to different results:
+I tested multiple data generating processes to understand in which contexts different modeling strategies led to different results. There were two different broad categories under which the data generating processes fit based on how the outcome was generated, which I call (1) conditional on baseline and (2) repeated measures.
 
-(1) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \epsilon$
+#### DGP 1: Conditional on Baseline
 
-(2) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \beta_{X*Y_0} X*Y_{0} + \epsilon$
+These DGPs use the following variables:
 
-where $X$ is treatment, $Y_{0}$ is the baseline measure of the outcome before treatment, and $Y_{1}$ is the post-treatment outcome.
+$X$ = Treatment Status from RCT
 
-(3) $Y = \alpha_0 + \alpha_{Arm} Arm + \alpha_{Post} Post + \alpha_{Arm*Post} Arm*Post + \epsilon$
+$Y_0$ = Outcome at Baseline (Pre-treatment)
 
-(4) $Y = \alpha_0 + \alpha_{Arm} Arm + \alpha_{Post} Post + \alpha_{Arm*Post} Arm*Post + \gamma + \epsilon$
+$Y_1$ = Outcome at Follow-up (Post-treatment)
 
-where $Arm$ is treatment an indicator of the study arm, $Post$ is an indicator of time (pre/post intervention), and $\gamma$ is an individual-specific random effect.
+DGPs:
+
+(1A) $Y_{1}=\alpha_0 + \alpha_X X + \alpha_{Y_0} Y_{0} + \epsilon$
+
+(1B) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \beta_{X*Y_0} X*Y_{0} + \epsilon$
+
+#### DGP 2: Repeated Measures
+
+These DGPs use the following variables:
+
+$Arm$ = Indicator of Treatment Study Arm
+
+$Post$ = Indicator of Time (0=Pre-Intervention, 1=Post-Intervention)
+
+$\phi$ = Individual-Specific Random Effect
+
+$Y_t$ = Outcome at Time $t$ (where $t$ is reflected in $Post$)
+
+(2A) $Y_t = \gamma_0 + \gamma_{Arm} Arm + \gamma_{Post} Post + \gamma_{Arm*Post} Arm*Post + \epsilon$
+
+(2B) $Y_t = \delta_0 + \delta_{Arm} Arm + \delta_{Post} Post + \delta_{Arm*Post} Arm*Post + \phi_i + \epsilon$
+
+#### QUESTION: How to represent random effect in DAG? U_y separated out? Or two nodes--one for Y_1 and one for Y_0? And confirm how to simulate with RE correctly.
+
+#### Could RE also be in DGP 1 by simulating some variance of Y
+
+#### To Do: Redo figures in Causal Fusion, looks nicer
 
 
-**NOTE TO RENAME PARAMETERS ABOVE TO DIFFER**
+#### Question: in DGP 2a/2b, how to deal with potentially different variances in Y_0 and Y_1 when we're just generating Y_t?
+
 
 ```{r}
 #| echo: false
@@ -87,85 +115,150 @@ dag2 <- dagitty::dagitty(
 }'
 )
 
-gg1 <- ggdag(dag1, layout = "circle") + theme_dag_blank() + annotate("text",x=.45,y=.48,label="Effect = 0") + ggtitle("DGP 1: No Interaction\n(on Additive Scale)")
+dag3 <- dagitty::dagitty(
+'dag {
+  "Arm*Post" [exposure,pos="-0.329,0.265"]
+  Arm [pos="-1.761,0.654"]
+  Post [pos="-0.424,-0.489"]
+  Yt [outcome,pos="1.198,0.644"]
+  "Arm*Post" -> Yt
+  Arm -> "Arm*Post"
+  Arm -> Yt
+  Post -> "Arm*Post"
+  Post -> Yt
+}'
+)
+
+
+dag4 <- dagitty::dagitty(
+'dag {
+  "Arm*Post" [exposure,pos="-0.329,0.265"]
+  "Φ" [pos="1.053,-0.210"]
+  Arm [pos="-1.761,0.654"]
+  Post [pos="-0.424,-0.489"]
+  Yt [outcome,pos="1.198,0.644"]
+  "Arm*Post" -> Yt
+  "Φ" -> Yt
+  Arm -> "Arm*Post"
+  Arm -> Yt
+  Post -> "Arm*Post"
+  Post -> Yt
+}'
+)
+
+
+gg1 <- ggdag(dag1, layout = "circle") + theme_dag_blank() + annotate("text",x=.45,y=.48,label="Effect = 0") + ggtitle("DGP 1A: Conditional on Baseline,\nNo Interaction (on Additive Scale)")
 
 gg2 <- ggdag(dag2, layout = "circle") + theme_dag_blank() + 
-  annotate("text",x=.45,y=.48,label="Effect =/= 0") + ggtitle("DGP 2: Interaction\n(on Additive Scale)")
+  annotate("text",x=.45,y=.48,label="Effect =/= 0") + ggtitle("DGP 1B: Conditional on Baseline,\nInteraction (on Additive Scale)")
+
+gg3 <- ggdag(dag3, layout = "circle") + theme_dag_blank() + 
+  ggtitle("DGP 2A: Repeated Measures\n(no Random Effect)")
+
+gg4 <- ggdag(dag4, layout = "circle") + theme_dag_blank() + 
+  ggtitle("DGP 2B: Repeated Measures\n(with Random Effect)")
 
 grid.arrange(gg1, gg2, nrow = 1)
+
+grid.arrange(gg3, gg4, nrow = 1)
 
 #ggplot(dag)
 
 
 ```
 
+I used these DGPs to simulate each of these 4 types of datasets with varying sample sizes (30, 300, 3000), each 1,000 times.
+
 ### Models Fit
 
-I compared the following analytic approaches (names from Twisk et al., 2018):
+I fit models specified like each of the DGPs above on each of the datasets simulated as specified in the DGPs above (4 models fit on each of 4 datasets for 16 combinations). I compared the following analytic approaches (names from Twisk et al., 2018):
 
 (1) "Longitudinal Analysis of Covariance"
 
-```{=html}
-<!-- -->
-```
-(a) Unsaturated $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \epsilon$
-(b) Saturated $Y_t=\beta_0 + \beta_X X + \beta_{Y_0} Y_0 + \beta_{X*Y_0} X*Y_0 + \epsilon$
+(1A) $Y_{1}=\alpha_0 + \alpha_X X + \alpha_{Y_0} Y_{0} + \epsilon$
 
-```{=html}
-<!-- -->
-```
-(2) "Repeated Measures Analysis" (Difference in Differences) 
+(1B) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \beta_{X*Y_0} X*Y_{0} + \epsilon$
 
-(a) No Individual Random Effect $Y_t=\beta_0 + \beta_X X + \beta_{time} time + \beta_{time*X} time*X + \epsilon$
-(b) Individual Random Effect $Y_t=\beta_0 + \beta_X X + \beta_{time} time + \beta_{time*X} time*X + \gamma + \epsilon$
 
-**NOTE TO REWRITE THESE USING SAME NOTATION AS FOR DATA GENERATION ABOVE**
+(2) "Repeated Measures Analysis" (Difference in Differences)
+
+(2A) $Y_t = \gamma_0 + \gamma_{Arm} Arm + \gamma_{Post} Post + \gamma_{Arm*Post} Arm*Post + \epsilon$
+
+(2B) $Y_t = \delta_0 + \delta_{Arm} Arm + \delta_{Post} Post + \delta_{Arm*Post} Arm*Post + \phi_i + \epsilon$
+
 
 ### Results
 
 ```{r}
 #| echo: false
 
-## DATA GENERATING PROCESS 1
+bd <- data.table(data.frame(d1a=c(),d1b=c(),d2a=c(),d2b=c()))
+res <- array(data=rep(NA,4*4*N),dim=c(4,4,niter))
+d <- list() ## data
+for (i in 1:niter) {
+  #cat(paste0(i)); flush.console()
+ 
+  ## Data generation
+  d[["1a"]] <- dgp1a(N=N) ## DGP 1a
+  d[["1b"]] <- dgp1b(N=N) ## DGP 1b
+  d[["2a"]] <- dgp2a(N=N) ## DGP 2a
+  d[["2b"]] <- dgp2b(N=N) ## DGP 2b
 
-bd <- c()
-m1 <- c()
-m2 <- c()
-for (i in niter) {
-  cat(paste0(i)); flush.console()
-  ## generate data
-  tx <- sample(x=1:N,size=.5*N) ## make treatment randomization exactly 50%
-  ## continuous first because it seems easier
-  Y0 <- rnorm(n=N,mean=10,sd=1.5)
-  E <- as.numeric(c(1:N) %in% tx)
-  Y1 <- (1*Y0 + E*(-2) + rnorm(n=N,mean=0,sd=.2))
-  id=1:N
-  d <- data.table(as.data.frame(cbind(Y0,E,Y1,id)))
-  
-  ## data formatted for DiD
-  d2 <- melt(copy(d),id.vars=c("id","E"),variable.name="time",value.name="Y")
-  d2[,time:=as.numeric(substr(time,2,3))]
-  d2[,id:=factor(id)]
-  
-  ## find imbalance in baseline values
-  bd[i] <- mean(d[E==1]$Y0)-mean(d[E==0]$Y0)
+  ## find imbalance in baseline values for each of
+  ## the four simulated datasets
+  bd <- rbind(bd,imbalance(d),use.names=F)
   
   ## regression models
-  mod1 <- lm(data=d2,formula="Y ~ E + time + E*time")
-  # did2 <- lmer(data=d2,formula="Y ~ E + time + E*time + (1 | id)") in this case exactly the same
-  mod2 <- lm(data=d,formula="Y1 ~ Y0 + E")
-  m1[i] <- summary(mod1)$coefficients["E:time","Estimate"]
-  m2[i] <- summary(mod2)$coefficients["E","Estimate"]
-    
+  m1aform <- "Y1 ~ Y0 + E"
+  m1bform <- "Y1 ~ Y0 + E + Y0*E"
+  m2aform <- "Y ~ arm + post + arm*post"
+  m2bform <- "Y ~ arm + post + arm*post + (1|id)"
+  formlist <- list(m1aform,m1bform,m2aform,m2bform)
+  names(formlist) <- c("d1a","d1b","d2a","d2b")
+  
+  ## run each model on each dataset with key outputs extracted
+  res[,,i] <- run_model(forms=formlist,d=d)
+
 }
 
-m1diff <- abs(m1+2)
-m2diff <- abs(m2+2)
-mean(m1)
-mean(m2)
-summary(lm(m1diff ~ bd))
-summary(lm(m2diff ~ bd))
-mean(bd)
+means <- apply(res,MARGIN=c(1,2),mean)
+sds <- apply(res,MARGIN=c(1,2),sd)
+
+mean_bd <- apply(as.matrix(bd),MARGIN=2,mean)
+
+summary(lm((res[1,1,]+2) ~ unlist(bd[,1])))
+summary(lm((res[1,2,]+2) ~ unlist(bd[,1])))
+summary(lm((res[1,3,]+2) ~ unlist(bd[,1])))
+summary(lm((res[1,4,]+2) ~ unlist(bd[,1])))
+
+summary(lm(abs(res[2,1,]+1) ~ unlist(bd[,2])))
+summary(lm(abs(res[2,2,]+2) ~ unlist(bd[,2])))
+summary(lm(abs(res[2,3,]+1) ~ unlist(bd[,2])))
+summary(lm(abs(res[2,4,]+1) ~ unlist(bd[,2])))
+
+summary(lm((res[2,1,]+1) ~ unlist(bd[,2])))
+summary(lm((res[2,2,]+2) ~ unlist(bd[,2])))
+summary(lm((res[2,3,]+1) ~ unlist(bd[,2])))
+summary(lm((res[2,4,]+1) ~ unlist(bd[,2])))
+
+summary(lm(abs(res[3,1,]+2) ~ unlist(bd[,2])))
+summary(lm(abs(res[3,2,]+2) ~ unlist(bd[,2])))
+summary(lm(abs(res[3,3,]+2) ~ unlist(bd[,2])))
+summary(lm(abs(res[3,4,]+2) ~ unlist(bd[,2])))
+
+tmp <- data.frame(resid=res[2,4,]+1,b_diff=unlist(bd[,2]))
+
+gg <- ggplot(data=tmp,aes(x=b_diff,y=resid)) + geom_point() + theme_bw() + geom_smooth()
+print(gg)
+
+
+# m1diff <- abs(m1+2)
+# m2diff <- abs(m2+2)
+# mean(m1)
+# mean(m2)
+# summary(lm(m1diff ~ bd))
+# summary(lm(m2diff ~ bd))
+# mean(bd)
 
 ```
 
