@@ -28,7 +28,7 @@ source("C:/Users/MattC/Documents/repos/epi_explorations/RCT_options_functions.R"
 
 ## small number to have more likelihood for imbalance
 N <- 30
-niter <- 1000
+niter <- 2000
 ```
 
 ## Analysis
@@ -223,33 +223,37 @@ for (i in 1:niter) {
 
 means <- apply(res,MARGIN=c(1,2),mean)
 sds <- apply(res,MARGIN=c(1,2),sd)
+lower <- apply(res,MARGIN=c(1,2),quantile,probs=0.025)
+upper <- apply(res,MARGIN=c(1,2),quantile,probs=0.975)
+
 
 mean_bd <- apply(as.matrix(bd),MARGIN=2,mean)
 
-summary(lm((res[1,1,]+2) ~ unlist(bd[,1])))
-summary(lm((res[1,2,]+2) ~ unlist(bd[,1])))
-summary(lm((res[1,3,]+2) ~ unlist(bd[,1])))
-summary(lm((res[1,4,]+2) ~ unlist(bd[,1])))
+## find the gap between the true parameter value and the 
+## estimated value
+dgps <- c("1a","1b","2a","2b")
+ests <- c("1a","1b","2a","2b")
+trueparams <- matrix(data=c(-2, -2, -2, -2,
+                            -1, -2, -1, -1,
+                            -2, -2, -2, -2,
+                            -2, -2, -2, -2),nrow=4,byrow=T)
+regs <- data.table(expand.grid(dgp=c(dgps),est=c(ests)))
+regs[,c("coeff","pval"):=as.numeric(NA)]
 
-summary(lm(abs(res[2,1,]+1) ~ unlist(bd[,2])))
-summary(lm(abs(res[2,2,]+2) ~ unlist(bd[,2])))
-summary(lm(abs(res[2,3,]+1) ~ unlist(bd[,2])))
-summary(lm(abs(res[2,4,]+1) ~ unlist(bd[,2])))
 
-summary(lm((res[2,1,]+1) ~ unlist(bd[,2])))
-summary(lm((res[2,2,]+2) ~ unlist(bd[,2])))
-summary(lm((res[2,3,]+1) ~ unlist(bd[,2])))
-summary(lm((res[2,4,]+1) ~ unlist(bd[,2])))
+for (i in 1:4) {
+  for (j in 1:4) {
+    regs[dgp == dgps[i] & est == ests[j],coeff:=summary(lm((res[i,j,]+trueparams[i,j]) ~ as.matrix(bd)[,i]))$coefficients[2,1]]
+    regs[dgp == dgps[i] & est == ests[j],pval:=summary(lm((res[i,j,]+trueparams[i,j]) ~ as.matrix(bd)[,i]))$coefficients[2,4]]
+  }
+}
+regs <- regs[order(dgp,est)]
+regs
 
-summary(lm(abs(res[3,1,]+2) ~ unlist(bd[,2])))
-summary(lm(abs(res[3,2,]+2) ~ unlist(bd[,2])))
-summary(lm(abs(res[3,3,]+2) ~ unlist(bd[,2])))
-summary(lm(abs(res[3,4,]+2) ~ unlist(bd[,2])))
-
-tmp <- data.frame(resid=res[2,4,]+1,b_diff=unlist(bd[,2]))
-
-gg <- ggplot(data=tmp,aes(x=b_diff,y=resid)) + geom_point() + theme_bw() + geom_smooth()
-print(gg)
+# tmp <- data.frame(resid=res[2,4,]+1,b_diff=unlist(bd[,2]))
+# 
+# gg <- ggplot(data=tmp,aes(x=b_diff,y=resid)) + geom_point() + theme_bw() + geom_smooth()
+# print(gg)
 
 
 # m1diff <- abs(m1+2)
