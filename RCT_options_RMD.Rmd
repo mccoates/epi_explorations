@@ -1,7 +1,6 @@
 ---
 title: "Comparison of Methods for Analyzing RCT Data Regarding Baseline Treatment Group Differences"
-format: html
-visualoutput: 
+output: 
   rmdformats::readthedown:
     code_folding: show
     self_contained: true
@@ -11,14 +10,18 @@ editor_options:
   chunk_output_type: console
 ---
 
-### Motivation:
+
+# Motivation
 
 -   Seeing multiple approaches for analyzing fairly basic structures of RCT data
 -   Reading that some strategies better adjust for **regression to the mean** because of baseline differences in treatment and control group (Twisk, 2018)
 -   Wanting to understand the DAG structures that illustrate the "difference in differences" and "longitudinal analysis of covariance" approaches/implied data generating processes
--   Talking to professor in Bayesian analysis class who strongly preferred a difference in differences approach with an individual-level random effect
+-   Talking to professor in Bayesian analysis class who strongly preferred a difference in differences approach with an individual-level random effect over an approach estimating the outcome at time 2, using the outcome at time 1 as a predictor
 
-```{r}
+# Aim
+Compare multiple strategies for analyzing simulated RCT data to understand differences that can arise in estimates between models across different types of data generating processes.
+
+```{r message=FALSE}
 #| echo: false
 #| output: false
 # setup
@@ -35,22 +38,22 @@ source("C:/Users/MattC/Documents/repos/epi_explorations/RCT_options_functions.R"
 
 ## small number to have more likelihood for imbalance
 N <- 30
-niter <- 2000
+niter <- 10
 ```
 
-## Analysis
+# Analysis
 
-### Overview
+## Overview
 
 (1) Simulated RCT data using multiple data generating processes for comparison.
 
 (2) Fit generalized linear models with varied specifications to estimate the effect of treatment on the outcome of interest, comparing error over many simulations, as well as examining relationship between error and the baseline imbalance in the outcome.
 
-### Data Generating Processes
+## Data Generating Processes
 
 I tested multiple data generating processes to understand in which contexts different modeling strategies led to different results. There were two different broad categories under which the data generating processes fit based on how the outcome was generated, which I call (1) conditional on baseline and (2) repeated measures.
 
-#### DGP 1: Conditional on Baseline
+### DGP 1: Conditional on Baseline
 
 These DGPs use the following variables:
 
@@ -66,7 +69,7 @@ DGPs:
 
 (1B) $Y_{1}=\beta_0 + \beta_X X + \beta_{Y_0} Y_{0} + \beta_{X*Y_0} X*Y_{0} + \epsilon$
 
-#### DGP 2: Repeated Measures
+### DGP 2: Repeated Measures
 
 These DGPs use the following variables:
 
@@ -82,13 +85,13 @@ $Y_t$ = Outcome at Time $t$ (where $t$ is reflected in $Post$)
 
 (2B) $Y_t = \delta_0 + \delta_{Arm} Arm + \delta_{Post} Post + \delta_{Arm*Post} Arm*Post + \phi_i + \epsilon$
 
-#### QUESTION: How to represent random effect in DAG? U_y separated out? Or two nodes--one for Y_1 and one for Y_0? And confirm how to simulate with RE correctly.
+### QUESTION: How to represent random effect in DAG? U_y separated out? Or two nodes--one for Y_1 and one for Y_0? And confirm how to simulate with RE correctly.
 
-#### Could RE also be in DGP 1 by simulating some variance of Y
+### Could RE also be in DGP 1 by simulating some variance of Y
 
-#### To Do: Redo figures in Causal Fusion, looks nicer
+### To Do: Redo figures in Causal Fusion, looks nicer
 
-#### Question: in DGP 2a/2b, how to deal with potentially different variances in Y_0 and Y_1 when we're just generating Y_t?
+### Question: in DGP 2a/2b, how to deal with potentially different variances in Y_0 and Y_1 when we're just generating Y_t?
 
 ```{r}
 #| echo: false
@@ -174,7 +177,7 @@ grid.arrange(gg3, gg4, nrow = 1)
 
 I used these DGPs to simulate each of these 4 types of datasets with varying sample sizes (30, 300, 3000), each 1,000 times.
 
-### Models Fit
+## Models Fit
 
 I fit models specified like each of the DGPs above on each of the datasets simulated as specified in the DGPs above (4 models fit on each of 4 datasets for 16 combinations). I compared the following analytic approaches (names from Twisk et al., 2018):
 
@@ -190,9 +193,9 @@ I fit models specified like each of the DGPs above on each of the datasets simul
 
 (2B) $Y_t = \delta_0 + \delta_{Arm} Arm + \delta_{Post} Post + \delta_{Arm*Post} Arm*Post + \phi_i + \epsilon$
 
-### Results
+## Results
 
-```{r}
+```{r message=FALSE}
 #| echo: false
 
 bd <- data.table(data.frame(d1a=c(),d1b=c(),d2a=c(),d2b=c()))
